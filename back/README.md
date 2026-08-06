@@ -10,7 +10,7 @@ implementada. Não deixe nenhum "[a preencher]" na versão final (Aula 16).
 
 > Projeto integrador da Unidade Curricular **Aplicações Mobile**, construído ao longo de 16 aulas.
 
-**Squad:** [André Luiz R.F., Edson Henrique A.S., Gustavo dos Santos Oliveira]
+**Squad:** [André Luiz Rodrigues Fernandes, Edson Henrique Abreu de Souza, Gustavo dos Santos Oliveira]
 **Curso:** Superior de Tecnologia em Análise e Desenvolvimento de Sistemas — Turma STADS
 **Professor:** Prof. Dr. Maurício Falvo
 
