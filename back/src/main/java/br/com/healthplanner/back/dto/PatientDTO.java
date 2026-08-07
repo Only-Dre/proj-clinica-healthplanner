@@ -6,6 +6,7 @@ public class PatientDTO {
     private String phone;
     private String cpf;
     private String email;
+    private String history;
 
     public PatientDTO(){}
 

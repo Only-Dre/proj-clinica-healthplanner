@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import br.com.healthplanner.back.dto.PatientDTO;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping
 public class PatientController {
 
     public ArrayList<PatientDTO> patients = new ArrayList<>();
@@ -19,7 +19,7 @@ public class PatientController {
         return patients;
     }
     
-    @RequestMapping
+    @RequestMapping("/insertPatient")
     public PatientDTO insertPatient(@RequestBody PatientDTO patient) {
         patients.add(patient);
         return patient;

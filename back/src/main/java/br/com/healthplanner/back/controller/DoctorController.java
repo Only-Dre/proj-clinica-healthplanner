@@ -10,20 +10,27 @@ import br.com.healthplanner.back.dto.DoctorDTO;
 
 
 @RestController
-@RequestMapping("/apiD")
+@RequestMapping
 public class DoctorController {
 
     public ArrayList<DoctorDTO> doctors = new ArrayList<>();
+    public Long nextId = 1L;
 
     @RequestMapping("/doctors")
     public ArrayList<DoctorDTO> showDoctors() {
         return doctors;
     }
 
-    @RequestMapping
+    @RequestMapping("/insertDoctor")
     public DoctorDTO insertDoctor(@RequestBody DoctorDTO doctor) {
-        doctors.add(doctor);
-        return doctor;
+        DoctorDTO newDoctor = new DoctorDTO();
+        newDoctor.setId(nextId++);
+        newDoctor.setName(doctor.getName());
+        newDoctor.setCpf(doctor.getCpf());
+        newDoctor.setPhone(doctor.getPhone());
+        newDoctor.setSpecialty(doctor.getSpecialty());
+        doctors.add(newDoctor);
+        return newDoctor;
     }
     
 }
