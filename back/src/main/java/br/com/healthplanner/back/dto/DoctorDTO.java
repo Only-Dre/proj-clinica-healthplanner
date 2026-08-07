@@ -3,6 +3,7 @@ package br.com.healthplanner.back.dto;
 public class DoctorDTO {
     private Long id;
     private String name;
+    private String occupation;
 
     public DoctorDTO(){}
 
@@ -20,6 +21,14 @@ public class DoctorDTO {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getOccupation() {
+        return occupation;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
     }
     
 }
