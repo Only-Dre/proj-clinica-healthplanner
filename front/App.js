@@ -1,31 +1,48 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-import { Button } from 'react-native-web';
+// App.js (Usando React Navigation como exemplo de estrutura profissional)
+//
+// Aula 3: os dados de medicos/pacientes deixaram de ser mockados aqui e
+// passaram a ser buscados pelas próprias telas via API (GET /medicos,
+// GET /pacientes). Por isso os useState com arrays fixos saíram daqui -
+// cada tela agora é dona do seu próprio carregamento.
+import React from 'react';
+import {View, Text, StyleSheet} from 'react-native'
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
-export default function App() {
+// Importa todos os componentes de tela
+import Splash from './src/screens/Splash/Splash';
+import MenuScreen from './src/screens/Menu/MenuScreen';
+import Medico from './src/screens/Medico/Medico';
+import Paciente from './src/screens/Paciente/Paciente';
+//import Op3Screen from './src/screens/Consulta/Consulta';
+import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
+import CadastroEdicaoPacienteScreen from './src/screens/Paciente/CadastroEdicaoPacienteScreen';
+
+const Stack = createStackNavigator();
+
+function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Health Planner</Text>
-      <label>Um aplicativo para agendar consultas</label>
-      <Button
-      title="Inscrever-se"/>
-      <Button
-      title="Entrar"/>
-      <StatusBar style="auto" />
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="Splash">
+        {/* A tela de Splash é a primeira, sem cabeçalho */}
+        <Stack.Screen name="Splash" component={Splash} options={{ headerShown: false }} />
+        {/* A tela Menu é o ponto de partida após o carregamento */}
+        <Stack.Screen name="Menu" component={MenuScreen} options={{ title: 'Menu Principal' }} />
+
+        <Stack.Screen name="Medicos" component={Medico} options={{ title: 'Médico(a)s' }} />
+        <Stack.Screen name="Pacientes" component={Paciente} options={{ title: 'Pacientes' }} />
+        {/*<Stack.Screen name="Consultas" component={Op3Screen} options={{ title: 'Consultas' }} /> */}
+        <Stack.Screen name="MedicoForm" component={CadastroEdicaoMedicoScreen} options={{ title: 'Gerenciar Médico' }} />
+        <Stack.Screen name="PacienteForm" component={CadastroEdicaoPacienteScreen} options={{ title: 'Gerenciar Paciente' }} />
+        {/* Adicionei uma tela temporária para as ações do card */}
+        <Stack.Screen name="EmConstrucao" component={() => (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ fontSize: 24 }}>Em Construção!</Text>
+            </View>
+        )} options={{ title: 'Em Construção' }} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    color: '#000000',
-    fontSize: 50,
-    paddingBottom: 120
-  }
-});
+export default App; 
