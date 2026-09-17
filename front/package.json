@@ -10,14 +10,17 @@
     "mock-api": "json-server --watch db_clinica.json --port 3000"
   },
   "dependencies": {
-    "@react-native-picker/picker": "2.11.1",
+    "@react-native-picker/picker": "2.11.4",
     "@react-navigation/native": "^7.1.18",
     "@react-navigation/stack": "^7.4.9",
-    "expo": "~54.0.12",
-    "expo-status-bar": "~3.0.8",
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "react-native": "0.81.4",
+    "expo": "~57.0.23",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
     "react-native-web": "^0.21.0",
     "react-navigation": "^5.0.0"
   },
