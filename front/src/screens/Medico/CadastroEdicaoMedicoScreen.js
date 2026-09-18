@@ -1,39 +1,54 @@
-// src/screens/Medico/CadastroEdicaoMedicoScreen.js
-//
-// Aula 3 - Passo 4: handleSave deixou de ser um console.log e passou a
-// gravar de verdade no servidor (POST para cadastrar, PUT para editar).
 import React from 'react';
 import MedicoForm from '../../components/MedicoForm';
 import { View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Em dispositivo fisico (Expo Go), troque pelo IP da maquina rodando o
-// json-server, na mesma rede Wi-Fi.
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost:3001';
 
 const CadastroEdicaoMedicoScreen = ({ route, navigation }) => {
-  // A prop 'medico' vira via route.params
   const { medico } = route.params || {};
 
-  // handleSave decide o verbo pelo modo da tela: sem medico -> POST
-  // (cadastro); com medico -> PUT no id existente (edicao).
   const handleSave = async (novoDadosMedico) => {
     const editando = !!medico;
     const url = editando
       ? `${BASE_URL}/medicos/${medico.id}`
       : `${BASE_URL}/medicos`;
 
-    const resposta = await fetch(url, {
-      method: editando ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(novoDadosMedico),
-    });
+    const token = await AsyncStorage.getItem('token');
 
-    if (!resposta.ok) {
-      throw new Error(`Erro HTTP ${resposta.status} ao salvar médico`);
+    // Cria timeout de 8s
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
+    try {
+      const resposta = await fetch(url, {
+        method: editando ? 'PUT' : 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(novoDadosMedico),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+
+      if (!resposta.ok) {
+        throw new Error(`Erro HTTP ${resposta.status} ao salvar médico`);
+      }
+
+      return await resposta.json();
+    } catch (e) {
+      clearTimeout(timeout);
+      
+      // Trata timeout
+      if (e.name === 'AbortError') {
+        throw new Error('Tempo limite de 8s excedido. Tente novamente.');
+      }
+      
+      throw e;
     }
-
-    return await resposta.json();
   };
 
   const handleCancel = () => {
