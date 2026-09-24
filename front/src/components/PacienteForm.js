@@ -1,9 +1,4 @@
-// src/components/PacienteForm.js
-//
-// Espelha o padrão do MedicoForm.js (Aula 3 - Passo 4/7): validação local,
-// estado "salvando" e onSave assíncrono só confirma sucesso depois que o
-// servidor responder.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +7,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Platform,
+  SafeAreaView,
 } from 'react-native';
 
 const initialPacienteState = {
@@ -22,39 +19,31 @@ const initialPacienteState = {
   email: '',
 };
 
-/**
- * Componente PacienteForm para Cadastro ou Edição.
- * @param {object} props.paciente - Objeto do paciente para edição, ou null para cadastro.
- * @param {function} props.onSave - Função assíncrona chamada ao concluir; deve rejeitar em caso de erro.
- * @param {function} props.onCancel - Função chamada ao cancelar.
- * @param {object} props.navigation - Objeto de navegação.
- */
 const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
-  const [formData, setFormData] = useState(paciente || initialPacienteState);
+  // Inicializa uma vez apenas
+  const [formData, setFormData] = useState(() => paciente ? { ...paciente } : initialPacienteState);
   const [errors, setErrors] = useState({});
   const [salvando, setSalvando] = useState(false);
 
-  const isEditing = !!paciente;
+  const isEditing = useMemo(() => !!paciente, [paciente?.id]);
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
 
   const requiredFields = ['nome', 'cpf', 'dataNascimento', 'telefone', 'email'];
 
-  useEffect(() => {
-    setFormData(paciente || initialPacienteState);
-  }, [paciente]);
-
-  const handleChange = (name, value) => {
+  // Função estável para atualizar campo
+  const handleChange = useCallback((name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors(prev => {
+    setErrors(prev => {
+      if (prev[name]) {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
-      });
-    }
-  };
+      }
+      return prev;
+    });
+  }, []);
 
-  const validate = () => {
+  const validate = useCallback(() => {
     let valid = true;
     const newErrors = {};
     requiredFields.forEach(field => {
@@ -65,9 +54,9 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
     });
     setErrors(newErrors);
     return valid;
-  };
+  }, [formData]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validate()) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
@@ -76,49 +65,70 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
     setSalvando(true);
     try {
       await onSave(formData);
-      Alert.alert(
-        isEditing ? 'Sucesso' : 'Cadastro Concluído',
-        isEditing ? 'Dados do paciente atualizados.' : 'Novo paciente cadastrado com sucesso!'
-      );
-      navigation.goBack();
     } catch (e) {
       Alert.alert('Não foi possível salvar', e.message);
     } finally {
       setSalvando(false);
     }
-  };
+  }, [formData, validate, onSave]);
 
-  const ValidatedInput = ({ label, name, ...props }) => (
+  const ValidatedInput = useCallback(({ label, name, ...props }) => (
     <View style={formStyles.inputGroup}>
       <Text style={formStyles.label}>{label}</Text>
       <TextInput
         style={[formStyles.input, errors[name] && formStyles.inputError]}
         value={formData[name]}
         onChangeText={(text) => handleChange(name, text)}
+        placeholderTextColor="#aaa"
+        autoCorrect={false}
+        autoCapitalize="none"
         {...props}
       />
       {errors[name] && <Text style={formStyles.errorText}>{errors[name]}</Text>}
     </View>
-  );
+  ), [formData, errors, handleChange]);
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>{isEditing ? 'Editar Paciente' : 'Novo Paciente'}</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.title}>
+          {isEditing ? 'Editar Paciente' : 'Novo Paciente'}
+        </Text>
 
-        <ValidatedInput label="Nome Completo" name="nome" placeholder="Ex: Lucas Pereira" />
-        <ValidatedInput label="CPF" name="cpf" placeholder="000.000.000-00" keyboardType="numeric" />
+        <Text style={styles.sectionHeader}>👤 Informações Pessoais</Text>
+
+        <ValidatedInput 
+          label="Nome Completo" 
+          name="nome" 
+          placeholder="Lucas Pereira Silva"
+        />
+
+        <ValidatedInput 
+          label="CPF" 
+          name="cpf" 
+          placeholder="000.000.000-00" 
+          keyboardType="numeric"
+        />
+
         <ValidatedInput
           label="Data de Nascimento"
           name="dataNascimento"
           placeholder="AAAA-MM-DD"
+          keyboardType="numeric"
         />
+
+        <Text style={styles.sectionHeader}>📞 Contatos</Text>
+
         <ValidatedInput
           label="Telefone Celular"
           name="telefone"
-          placeholder="(XX) XXXXX-XXXX"
+          placeholder="(31) 99999-9999"
           keyboardType="phone-pad"
         />
+
         <ValidatedInput
           label="Email"
           name="email"
@@ -129,62 +139,133 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[formStyles.button, formStyles.saveButton, salvando && formStyles.buttonDisabled]}
+          style={[
+            formStyles.button,
+            formStyles.saveButton,
+            salvando && formStyles.buttonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={salvando}
+          activeOpacity={0.8}
         >
-          <Text style={formStyles.buttonText}>{salvando ? 'Salvando...' : buttonTitle}</Text>
+          <Text style={formStyles.buttonText}>
+            {salvando ? '⏳ Salvando...' : '✓ ' + buttonTitle}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[formStyles.button, formStyles.cancelButton]}
           onPress={onCancel || (() => navigation.goBack())}
           disabled={salvando}
+          activeOpacity={0.8}
         >
-          <Text style={formStyles.buttonText}>Cancelar</Text>
+          <Text style={formStyles.buttonText}>✕ Cancelar</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  scrollContent: { padding: 20, paddingBottom: 100 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#333' },
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 120,
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 24,
+    textAlign: 'center',
+    color: '#007AFF',
+  },
+  sectionHeader: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 20,
+    marginBottom: 12,
+    color: '#333',
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+    paddingBottom: 8,
+  },
   buttonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    borderTopColor: '#e0e0e0',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
   },
 });
 
 const formStyles = StyleSheet.create({
-  inputGroup: { marginBottom: 15 },
-  label: { fontSize: 14, marginBottom: 5, fontWeight: '500', color: '#333' },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    height: 45,
+  inputGroup: {
+    marginBottom: 14,
   },
-  inputError: { borderColor: 'red', borderWidth: 2, backgroundColor: '#ffe8e8' },
-  errorText: { fontSize: 12, color: 'red', marginTop: 4, alignSelf: 'flex-start' },
-  button: { flex: 1, padding: 15, borderRadius: 8, alignItems: 'center', marginHorizontal: 5 },
-  saveButton: { backgroundColor: '#007AFF' },
-  cancelButton: { backgroundColor: '#6c757d' },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  label: {
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: '600',
+    color: '#333',
+  },
+  input: {
+    borderWidth: 1.5,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    backgroundColor: '#fff',
+    height: 48,
+    color: '#333',
+  },
+  inputError: {
+    borderColor: '#e74c3c',
+    borderWidth: 2,
+    backgroundColor: '#fadbd8',
+  },
+  errorText: {
+    fontSize: 11,
+    color: '#c0392b',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  saveButton: {
+    backgroundColor: '#007AFF',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  cancelButton: {
+    backgroundColor: '#95a5a6',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });
 
 export default PacienteForm;
