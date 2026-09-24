@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -7,18 +7,16 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  Platform} from 'react-native';
-
+  Platform,
+  SafeAreaView
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 
-
-// Lista de Especialidades para o Picker
 const especialidades = ['Cardiologia', 'Pediatria', 'Dermatologia', 'Ginecologia', 'Neurologia', 'Oftalmologia', 'Clínica Geral'];
 
-// Estado inicial vazio para um novo médico
 const initialMedicoState = {
   nome: '',
-  especialidade: especialidades[0], // Padrão
+  especialidade: especialidades[0],
   crm: '',
   email: '',
   telefone: '',
@@ -30,59 +28,38 @@ const initialMedicoState = {
   cep: '',
 };
 
-/**
- * Componente MedicoForm para Cadastro ou Edição.
- * @param {object} props.medico - Objeto do médico para edição, ou null para cadastro.
- * @param {function} props.onSave - Função chamada ao concluir com sucesso.
- * @param {function} props.onCancel - Função chamada ao cancelar.
- * @param {object} props.navigation - Objeto de navegação.
- */
 const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
-  // 1. Inicializa o estado com base na prop 'medico'
-  const [formData, setFormData] = useState(medico || initialMedicoState);
-  
-  // 2. Estado para rastrear erros de validação
+  // Inicializa uma vez apenas
+  const [formData, setFormData] = useState(() => medico ? { ...medico } : initialMedicoState);
   const [errors, setErrors] = useState({});
-
-  // Estado de salvamento: trava o botão enquanto a requisição está em
-  // curso, evitando cadastro duplicado por duplo toque.
   const [salvando, setSalvando] = useState(false);
 
-  // 3. Define o título do botão e o modo do formulário
-  const isEditing = !!medico;
+  const isEditing = useMemo(() => !!medico, [medico?.id]);
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
 
-  // Campos obrigatórios
   const requiredFields = [
     'nome', 'especialidade', 'crm', 'email', 'telefone', 
     'logradouro', 'numero', 'cidade', 'uf', 'cep'
   ];
 
-  // Atualiza o formData quando o prop 'medico' muda (útil se o componente for reutilizado)
-  useEffect(() => {
-    setFormData(medico || initialMedicoState);
-  }, [medico]);
-
-  // Função genérica para atualizar o estado do formulário
-  const handleChange = (name, value) => {
+  // Função estável para atualizar campo
+  const handleChange = useCallback((name, value) => {
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Remove o erro assim que o usuário começa a digitar
-    if (errors[name]) {
-      setErrors(prev => {
+    setErrors(prev => {
+      if (prev[name]) {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
-      });
-    }
-  };
+      }
+      return prev;
+    });
+  }, []);
 
-  // Função de Validação
-  const validate = () => {
+  const validate = useCallback(() => {
     let valid = true;
     const newErrors = {};
 
     requiredFields.forEach(field => {
-      // Verifica se o campo está vazio ou é apenas espaço em branco
       if (!formData[field] || String(formData[field]).trim() === '') {
         newErrors[field] = 'Campo Obrigatório';
         valid = false;
@@ -91,13 +68,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
     setErrors(newErrors);
     return valid;
-  };
+  }, [formData]);
 
-  // Função de submissão do formulário
-  // Agora dá await em onSave(formData): o Alert de sucesso e o goBack só
-  // acontecem depois que o servidor confirmar a gravação (POST/PUT), não
-  // antes. Se a requisição falhar, o usuário fica na tela com o erro.
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validate()) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
       return;
@@ -106,51 +79,44 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
     setSalvando(true);
     try {
       await onSave(formData);
-      Alert.alert(
-        isEditing ? 'Sucesso' : 'Cadastro Concluído',
-        isEditing ? 'Dados do médico atualizados.' : 'Novo médico cadastrado com sucesso!'
-      );
-      navigation.goBack();
     } catch (e) {
       Alert.alert('Não foi possível salvar', e.message);
     } finally {
       setSalvando(false);
     }
-  };
+  }, [formData, validate, onSave]);
   
-  // =========================================================================
-  // SUB-COMPONENTE: INPUT COM VALIDAÇÃO
-  // =========================================================================
-  const ValidatedInput = ({ label, name, ...props }) => (
+  const ValidatedInput = useCallback(({ label, name, ...props }) => (
     <View style={formStyles.inputGroup}>
       <Text style={formStyles.label}>{label}</Text>
       <TextInput
         style={[formStyles.input, errors[name] && formStyles.inputError]}
         value={formData[name]}
         onChangeText={(text) => handleChange(name, text)}
+        placeholderTextColor="#aaa"
+        autoCorrect={false}
+        autoCapitalize="none"
         {...props}
       />
       {errors[name] && <Text style={formStyles.errorText}>{errors[name]}</Text>}
     </View>
-  );
+  ), [formData, errors, handleChange]);
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
+    <SafeAreaView style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>{isEditing ? 'Editar Perfil' : 'Novo Cadastro'}</Text>
 
-        {/* ====================================
-            1. PROFISSIONAL
-            ==================================== */}
-        <Text style={styles.sectionHeader}>1. Profissional</Text>
+        <Text style={styles.sectionHeader}>👨‍⚕️ Profissional</Text>
         <ValidatedInput 
           label="Nome Completo" 
           name="nome" 
-          placeholder="Ex: Ana Maria da Silva" 
+          placeholder="Ana Maria da Silva" 
         />
         
-        {/* Campo Especialidade (Lista de Seleção) */}
         <View style={formStyles.inputGroup}>
           <Text style={formStyles.label}>Especialidade</Text>
           <View style={[formStyles.pickerWrapper, errors.especialidade && formStyles.inputError]}>
@@ -170,13 +136,10 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="CRM" 
           name="crm" 
-          placeholder="Ex: 12345/MG" 
+          placeholder="12345/MG" 
         />
 
-        {/* ====================================
-            2. CONTATOS
-            ==================================== */}
-        <Text style={styles.sectionHeader}>2. Contatos</Text>
+        <Text style={styles.sectionHeader}>📱 Contatos</Text>
         <ValidatedInput 
           label="Email" 
           name="email" 
@@ -186,205 +149,217 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="Telefone Celular" 
           name="telefone" 
-          placeholder="(XX) XXXXX-XXXX" 
+          placeholder="(31) 99999-9999" 
           keyboardType="phone-pad"
         />
 
-        {/* ====================================
-            3. ENDEREÇO PROFISSIONAL
-            ==================================== */}
-        <Text style={styles.sectionHeader}>3. Endereço Profissional</Text>
+        <Text style={styles.sectionHeader}>🏢 Endereço Profissional</Text>
         <ValidatedInput 
           label="Logradouro" 
           name="logradouro" 
-          placeholder="Ex: Rua das Flores" 
+          placeholder="Rua das Flores" 
         />
+        
         <View style={formStyles.row}>
-          <ValidatedInput 
-            label="Número" 
-            name="numero" 
-            placeholder="Nº" 
-            keyboardType="numeric"
-            style={formStyles.inputHalf}
-          />
-          <ValidatedInput 
-            label="Complemento" 
-            name="complemento" 
-            placeholder="Apto/Sala (Opcional)"
-            style={formStyles.inputHalf}
-            // Não é obrigatório (retirei do array requiredFields se fosse o caso)
-          />
+          <View style={formStyles.col50}>
+            <ValidatedInput 
+              label="Número" 
+              name="numero" 
+              placeholder="Nº" 
+              keyboardType="numeric"
+            />
+          </View>
+          <View style={formStyles.col50}>
+            <ValidatedInput 
+              label="Complemento" 
+              name="complemento" 
+              placeholder="Apto/Sala"
+            />
+          </View>
         </View>
+
         <ValidatedInput 
           label="Cidade" 
           name="cidade" 
-          placeholder="Ex: Belo Horizonte" 
+          placeholder="Belo Horizonte" 
         />
+
         <View style={formStyles.row}>
-          <ValidatedInput 
-            label="UF" 
-            name="uf" 
-            placeholder="Ex: MG" 
-            maxLength={2}
-            style={formStyles.inputQuarter}
-          />
-          <ValidatedInput 
-            label="CEP" 
-            name="cep" 
-            placeholder="XXXXX-XXX" 
-            keyboardType="numeric"
-            maxLength={9}
-            style={formStyles.inputThreeQuarter}
-          />
+          <View style={formStyles.col30}>
+            <ValidatedInput 
+              label="UF" 
+              name="uf" 
+              placeholder="MG" 
+              maxLength={2}
+            />
+          </View>
+          <View style={formStyles.col70}>
+            <ValidatedInput 
+              label="CEP" 
+              name="cep" 
+              placeholder="30123-456" 
+              keyboardType="numeric"
+              maxLength={9}
+            />
+          </View>
         </View>
       </ScrollView>
 
-      {/* BOTÕES FIXOS NA PARTE INFERIOR */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[formStyles.button, formStyles.saveButton, salvando && formStyles.buttonDisabled]}
+          style={[
+            formStyles.button, 
+            formStyles.saveButton, 
+            salvando && formStyles.buttonDisabled
+          ]}
           onPress={handleSubmit}
           disabled={salvando}
+          activeOpacity={0.8}
         >
-          <Text style={formStyles.buttonText}>{salvando ? 'Salvando...' : buttonTitle}</Text>
+          <Text style={formStyles.buttonText}>
+            {salvando ? '⏳ Salvando...' : '✓ ' + buttonTitle}
+          </Text>
         </TouchableOpacity>
         
         <TouchableOpacity
           style={[formStyles.button, formStyles.cancelButton]}
           onPress={onCancel || (() => navigation.goBack())}
           disabled={salvando}
+          activeOpacity={0.8}
         >
-          <Text style={formStyles.buttonText}>Cancelar</Text>
+          <Text style={formStyles.buttonText}>✕ Cancelar</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
-// =========================================================================
-// ESTILOS DO FORMULÁRIO
-// =========================================================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 100, // Espaço para os botões fixos
+    padding: 16,
+    paddingBottom: 120,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 26,
+    fontWeight: '700',
+    marginBottom: 24,
     textAlign: 'center',
-    color: '#333',
+    color: '#007AFF',
   },
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     marginTop: 20,
-    marginBottom: 10,
-    color: '#007AFF', // Cor de destaque
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    paddingBottom: 5,
+    marginBottom: 12,
+    color: '#333',
+    borderBottomWidth: 2,
+    borderBottomColor: '#007AFF',
+    paddingBottom: 8,
   },
   buttonContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#ddd',
+    borderTopColor: '#e0e0e0',
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10,
   },
 });
 
 const formStyles = StyleSheet.create({
-  inputGroup: {
-    marginBottom: 15,
+  inputGroup: { 
+    marginBottom: 14,
   },
-  label: {
-    fontSize: 14,
-    marginBottom: 5,
-    fontWeight: '500',
+  label: { 
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: '600', 
     color: '#333',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-    height: 45,
+    borderWidth: 1.5,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 15,
+    backgroundColor: '#fff',
+    height: 48,
+    color: '#333',
   },
-  inputError: {
-    borderColor: 'red',
+  inputError: { 
+    borderColor: '#e74c3c', 
     borderWidth: 2,
-    backgroundColor: '#ffe8e8',
+    backgroundColor: '#fadbd8',
   },
-  errorText: {
-    fontSize: 12,
-    color: 'red',
+  errorText: { 
+    fontSize: 11,
+    color: '#c0392b',
     marginTop: 4,
-    alignSelf: 'flex-start',
+    fontWeight: '500',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10, // Espaçamento entre os campos na linha
+    gap: 10,
   },
-  inputHalf: {
-    flex: 1, // Ocupa metade do espaço
+  col50: {
+    flex: 1,
   },
-  inputQuarter: {
-    flex: 0.3, // Ocupa cerca de 30%
+  col30: {
+    flex: 0.3,
   },
-  inputThreeQuarter: {
-    flex: 0.7, // Ocupa o restante
+  col70: {
+    flex: 0.7,
   },
-  // Estilo específico para o Picker
   pickerWrapper: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    backgroundColor: '#f9f9f9',
+    borderWidth: 1.5,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    height: 48,
     justifyContent: 'center',
-    height: 45,
-    overflow: 'hidden', // Importante para o Android
+    overflow: 'hidden',
   },
   picker: {
-    // Para iOS, o Picker não precisa de height/width se o wrapper tiver
-    // Para Android, pode ser necessário ajustar se houver padding estranho
-    height: Platform.OS === 'ios' ? undefined : 45,
+    height: 48,
     width: '100%',
   },
-  // Estilos dos Botões de Ação
   button: {
     flex: 1,
-    padding: 15,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    marginHorizontal: 5,
+    justifyContent: 'center',
+    minHeight: 48,
   },
   saveButton: {
-    backgroundColor: '#007AFF', // Azul primário
+    backgroundColor: '#007AFF',
+    shadowColor: '#007AFF',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   cancelButton: {
-    backgroundColor: '#6c757d', // Cinza
+    backgroundColor: '#95a5a6',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
 
