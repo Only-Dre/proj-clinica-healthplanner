@@ -16,11 +16,11 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useStorage } from '../../hooks/useStorage';
 
 // Em dispositivo físico (Expo Go), troque pelo IP da máquina rodando o
 // json-server, na mesma rede Wi-Fi.
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = 'http://10.110.12.82:3001';
 
 const PacienteCard = ({ paciente, navigation, onExcluir }) => (
   <View style={cardStyles.card}>
@@ -54,28 +54,23 @@ const Paciente = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
+  const { getItem } = useStorage();
 
+  // =====================================================================
+  // LEITURA - GET /pacientes
+  // =====================================================================
   const buscarPacientes = async () => {
     setCarregando(true);
     setErro(null);
-
     try {
-      const token = await AsyncStorage.getItem('token');
-
+      const token = await getItem('token');
       const resposta = await fetch(`${BASE_URL}/pacientes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!resposta.ok) {
-        throw new Error(
-          `Erro ao buscar pacientes: ${resposta.status}`
-        );
+        throw new Error(`Erro ao buscar pacientes: ${resposta.status}`);
       }
-
       const dados = await resposta.json();
-
       setPacientes(dados);
     } catch (error) {
       setErro(error.message);
@@ -84,40 +79,33 @@ const Paciente = ({ navigation }) => {
     }
   };
 
+  // A lista se atualiza toda vez que a tela recebe foco
   useFocusEffect(
     useCallback(() => {
       buscarPacientes();
     }, [])
   );
 
+  // =====================================================================
+  // EXCLUSÃO - DELETE /pacientes/:id
+  // =====================================================================
   const excluirPaciente = async (paciente) => {
     try {
-      const token = await AsyncStorage.getItem('token');
-
+      const token = await getItem('token');
       const resposta = await fetch(
         `${BASE_URL}/pacientes/${paciente.id}`,
         {
           method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-
       if (!resposta.ok) {
-        throw new Error(
-          `Erro ao excluir paciente: ${resposta.status}`
-        );
+        throw new Error(`Erro ao excluir paciente: ${resposta.status}`);
       }
-
-      setPacientes((listaAtual) =>
-        listaAtual.filter((item) => item.id !== paciente.id)
-      );
+      // Recarrega a lista após deletar
+      await buscarPacientes();
     } catch (error) {
-      Alert.alert(
-        'Erro',
-        `Não foi possível excluir o paciente.\n${error.message}`
-      );
+      Alert.alert('Erro', `Não foi possível excluir o paciente.\n${error.message}`);
     }
   };
 

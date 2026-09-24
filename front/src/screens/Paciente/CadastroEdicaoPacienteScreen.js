@@ -3,7 +3,7 @@ import PacienteForm from '../../components/PacienteForm';
 import { View, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = 'http://10.110.12.82:3001';
 
 const CadastroEdicaoPacienteScreen = ({ route, navigation }) => {
   const { paciente } = route.params || {};

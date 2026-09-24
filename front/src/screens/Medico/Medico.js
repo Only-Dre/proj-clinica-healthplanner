@@ -21,14 +21,16 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useStorage } from '../../hooks/useStorage';
 
 const IconeLupa = require("../../../assets/lupa.png");
 const IconeSeta = require("../../../assets/seta.png");
+const { getItem } = useStorage();
 
 // Em emulador/navegador na propria maquina, 'localhost' funciona. Em
 // dispositivo fisico (Expo Go), troque pelo IP da maquina rodando o
 // json-server, na mesma rede Wi-Fi (ex.: 'http://192.168.15.80:3000').
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = "http://10.110.12.82:3001";
 
 if (Platform.OS === "android") {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -123,25 +125,18 @@ const MedicoCard = ({ medico, navigation, onExcluir }) => {
 // =========================================================================
 const Medico = ({ navigation }) => {
   const [medicos, setMedicos] = useState([]);
-  const [searchText, setSearchText] = useState("");
+  const [searchText, setSearchText] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
-
-  // ---------------------------------------------------------------------
-  // LEITURA - GET /medicos
-  // ---------------------------------------------------------------------
+  const { getItem } = useStorage(); // ✅ Aqui no topo!
 
   const buscarMedicos = async () => {
     setCarregando(true);
     setErro(null);
     try {
-      // ✅ Pega o token do AsyncStorage
-      const token = await AsyncStorage.getItem("token");
-
+      const token = await getItem('token'); // ✅ Agora funciona
       const resposta = await fetch(`${BASE_URL}/medicos`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       if (!resposta.ok) {
         throw new Error(`Erro HTTP ${resposta.status}`);
