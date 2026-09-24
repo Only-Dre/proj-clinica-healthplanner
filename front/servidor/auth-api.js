@@ -5,7 +5,7 @@
 
 const http = require('http');
 const crypto = require('crypto');
-const url = require('url');
+
 
 const PORTA = 3001;
 
@@ -76,7 +76,7 @@ function usuarioDoToken(req) {
 // ============================================================================
 
 const servidor = http.createServer(async (req, res) => {
-  const parsedUrl = url.parse(req.url, true);
+  const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname;
   const metodo = req.method;
 
