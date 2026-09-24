@@ -9,13 +9,15 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useStorage } from '../../hooks/useStorage';
 
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = 'http://10.110.12.82:3001';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('recepcao@clinica.com');
   const [senha, setSenha] = useState('clinica123');
   const [carregando, setCarregando] = useState(false);
+  const { setItem } = useStorage();
 
   const handleLogin = async () => {
     setCarregando(true);
@@ -31,11 +33,7 @@ const LoginScreen = ({ navigation }) => {
       }
 
       const dados = await resposta.json();
-      
-      // Salva o token
-      await AsyncStorage.setItem('token', dados.token);
-      
-      // Vai para o Menu
+      await setItem('token', dados.token); 
       navigation.replace('Menu');
     } catch (e) {
       Alert.alert('Erro', e.message);
@@ -47,7 +45,7 @@ const LoginScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.titulo}>Health Planner</Text>
-      
+
       <TextInput
         style={styles.input}
         placeholder="E-mail"
@@ -55,7 +53,7 @@ const LoginScreen = ({ navigation }) => {
         onChangeText={setEmail}
         editable={!carregando}
       />
-      
+
       <TextInput
         style={styles.input}
         placeholder="Senha"

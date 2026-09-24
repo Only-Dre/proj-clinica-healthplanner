@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const BASE_URL = 'http://localhost:3001';
+const BASE_URL = 'http://10.110.12.82:3001';
 
 const CadastroEdicaoMedicoScreen = ({ route, navigation }) => {
   const { medico } = route.params || {};
