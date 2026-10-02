@@ -9,8 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useStorage } from '../../hooks/useStorage';
-
-const BASE_URL = 'http://10.110.12.7:3001';
+import { login } from '../../services/api';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('recepcao@clinica.com');
@@ -21,18 +20,12 @@ const LoginScreen = ({ navigation }) => {
   const handleLogin = async () => {
     setCarregando(true);
     try {
-      const resposta = await fetch(`${BASE_URL}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, senha }),
-      });
-
-      if (!resposta.ok) {
-        throw new Error('E-mail ou senha inválidos');
-      }
-
-      const dados = await resposta.json();
-      await setItem('token', dados.token); 
+      // Erros já vêm com mensagem apropriada:
+      // 401 -> "E-mail ou senha inválidos."
+      // sem rede -> "Não foi possível conectar ao servidor."
+      const dados = await login(email, senha);
+      await setItem('token', dados.token);
+      await setItem('usuario', JSON.stringify(dados.usuario)); // { id, nome, perfil }
       navigation.replace('Menu');
     } catch (e) {
       Alert.alert('Erro', e.message);
@@ -50,6 +43,8 @@ const LoginScreen = ({ navigation }) => {
         placeholder="E-mail"
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
         editable={!carregando}
       />
 

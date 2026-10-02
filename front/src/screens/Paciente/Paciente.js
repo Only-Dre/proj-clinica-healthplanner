@@ -1,8 +1,7 @@
 // src/screens/Paciente/Paciente.js
 //
-// Aula 3 - Passo 3 (leitura via GET /pacientes, FlatList simples, sem
-// agrupamento por letra) + Passo 7 - extensao (escrita: POST/PUT/DELETE
-// seguindo o mesmo padrao aplicado em Medico.js).
+// Lista de pacientes: GET /pacientes, exclusão com confirmação (DELETE).
+// Todas as chamadas passam por src/services/api.js (token, timeout, 401).
 
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
@@ -16,11 +15,12 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useStorage } from '../../hooks/useStorage';
-
-// Em dispositivo físico (Expo Go), troque pelo IP da máquina rodando o
-// json-server, na mesma rede Wi-Fi.
-const BASE_URL = 'http://10.110.12.7:3001';
+import {
+  excluirPaciente as apiExcluirPaciente,
+  irParaLogin,
+  listarPacientes,
+  sessaoExpirou,
+} from '../../services/api';
 
 const PacienteCard = ({ paciente, navigation, onExcluir }) => (
   <View style={cardStyles.card}>
@@ -35,9 +35,7 @@ const PacienteCard = ({ paciente, navigation, onExcluir }) => (
     <View style={cardStyles.actionButtons}>
       <Button
         title="Editar"
-        onPress={() =>
-          navigation.navigate('PacienteForm', { paciente })
-        }
+        onPress={() => navigation.navigate('PacienteForm', { paciente })}
       />
 
       <Button
@@ -54,7 +52,6 @@ const Paciente = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
-  const { getItem } = useStorage();
 
   // =====================================================================
   // LEITURA - GET /pacientes
@@ -63,17 +60,14 @@ const Paciente = ({ navigation }) => {
     setCarregando(true);
     setErro(null);
     try {
-      const token = await getItem('token');
-      const resposta = await fetch(`${BASE_URL}/pacientes`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!resposta.ok) {
-        throw new Error(`Erro ao buscar pacientes: ${resposta.status}`);
-      }
-      const dados = await resposta.json();
+      const dados = await listarPacientes();
       setPacientes(dados);
-    } catch (error) {
-      setErro(error.message);
+    } catch (e) {
+      if (sessaoExpirou(e)) {
+        irParaLogin(navigation);
+        return;
+      }
+      setErro(e.message);
     } finally {
       setCarregando(false);
     }
@@ -91,21 +85,14 @@ const Paciente = ({ navigation }) => {
   // =====================================================================
   const excluirPaciente = async (paciente) => {
     try {
-      const token = await getItem('token');
-      const resposta = await fetch(
-        `${BASE_URL}/pacientes/${paciente.id}`,
-        {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!resposta.ok) {
-        throw new Error(`Erro ao excluir paciente: ${resposta.status}`);
-      }
-      // Recarrega a lista após deletar
+      await apiExcluirPaciente(paciente.id);
       await buscarPacientes();
-    } catch (error) {
-      Alert.alert('Erro', `Não foi possível excluir o paciente.\n${error.message}`);
+    } catch (e) {
+      if (sessaoExpirou(e)) {
+        irParaLogin(navigation);
+        return;
+      }
+      Alert.alert('Erro', `Não foi possível excluir o paciente.\n${e.message}`);
     }
   };
 
@@ -114,10 +101,7 @@ const Paciente = ({ navigation }) => {
       'Excluir paciente',
       `Deseja realmente excluir ${paciente.nome}?`,
       [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
+        { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Excluir',
           style: 'destructive',
@@ -127,20 +111,17 @@ const Paciente = ({ navigation }) => {
     );
   };
 
-  const filtrados = pacientes.filter((p) =>
-    (p.nome || '')
-      .toLowerCase()
-      .includes(searchText.toLowerCase()) ||
-    (p.cpf || '').includes(searchText)
+  const filtrados = pacientes.filter(
+    (p) =>
+      (p.nome || '').toLowerCase().includes(searchText.toLowerCase()) ||
+      (p.cpf || '').includes(searchText)
   );
 
   if (carregando && pacientes.length === 0) {
     return (
       <View style={styles.centro}>
         <ActivityIndicator size="large" />
-        <Text style={styles.textoCentro}>
-          Carregando pacientes...
-        </Text>
+        <Text style={styles.textoCentro}>Carregando pacientes...</Text>
       </View>
     );
   }
@@ -151,13 +132,8 @@ const Paciente = ({ navigation }) => {
         <Text style={styles.textoErro}>
           Não foi possível carregar os pacientes.
         </Text>
-
         <Text style={styles.textoCentro}>{erro}</Text>
-
-        <Button
-          title="Tentar novamente"
-          onPress={buscarPacientes}
-        />
+        <Button title="Tentar novamente" onPress={buscarPacientes} />
       </View>
     );
   }
@@ -193,18 +169,14 @@ const Paciente = ({ navigation }) => {
         onRefresh={buscarPacientes}
         refreshing={carregando}
         ListEmptyComponent={
-          <Text style={styles.textoCentro}>
-            Nenhum paciente encontrado.
-          </Text>
+          <Text style={styles.textoCentro}>Nenhum paciente encontrado.</Text>
         }
       />
 
       <View style={styles.fixedButtonContainer}>
         <Button
           title="Cadastrar Novo Paciente"
-          onPress={() =>
-            navigation.navigate('PacienteForm')
-          }
+          onPress={() => navigation.navigate('PacienteForm')}
         />
       </View>
     </View>
@@ -217,20 +189,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     padding: 10,
   },
-
   centro: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-
   textoCentro: {
     marginTop: 8,
     color: '#444',
     textAlign: 'center',
   },
-
   textoErro: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -238,7 +207,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 8,
   },
-
   avisoErro: {
     color: '#c0392b',
     backgroundColor: '#fdf1f1',
@@ -249,7 +217,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontSize: 12,
   },
-
   searchContainer: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -258,15 +225,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 10,
   },
-
   searchInput: {
     height: 40,
   },
-
   listWrapper: {
     flex: 1,
   },
-
   fixedButtonContainer: {
     padding: 10,
     backgroundColor: '#fff',
@@ -285,19 +249,16 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#eee',
   },
-
   nome: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#007AFF',
   },
-
   detalhe: {
     fontSize: 14,
     color: '#555',
     marginTop: 2,
   },
-
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-around',

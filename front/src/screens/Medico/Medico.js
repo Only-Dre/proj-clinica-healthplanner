@@ -1,9 +1,7 @@
 // src/screens/Medico/Medico.js
 //
-// Aula 3 - Passo 2 (leitura) e Passo 5 (exclusao): a tela deixou de receber
-// "medicos" por prop e passou a buscar sozinha em GET /medicos. O botao
-// "Desativar Perfil" virou "Excluir" de verdade, com confirmacao e DELETE.
-import AsyncStorage from "@react-native-async-storage/async-storage";
+// Lista de médicos: GET /medicos, exclusão com confirmação (DELETE).
+// Todas as chamadas passam por src/services/api.js (token, timeout, 401).
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
 import {
@@ -21,16 +19,15 @@ import {
   UIManager,
   View,
 } from "react-native";
-import { useStorage } from '../../hooks/useStorage';
+import {
+  excluirMedico as apiExcluirMedico,
+  irParaLogin,
+  listarMedicos,
+  sessaoExpirou,
+} from "../../services/api";
 
 const IconeLupa = require("../../../assets/lupa.png");
 const IconeSeta = require("../../../assets/seta.png");
-const { getItem } = useStorage();
-
-// Em emulador/navegador na propria maquina, 'localhost' funciona. Em
-// dispositivo fisico (Expo Go), troque pelo IP da maquina rodando o
-// json-server, na mesma rede Wi-Fi (ex.: 'http://192.168.15.80:3000').
-const BASE_URL = "http://10.110.12.7:3001";
 
 if (Platform.OS === "android") {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -39,17 +36,19 @@ if (Platform.OS === "android") {
 }
 
 // =========================================================================
-// FUNCAO AUXILIAR PARA AGRUPAR E FILTRAR OS DADOS
+// FUNCAO AUXILIAR PARA AGRUPAR E FILTRAR OS DADOS (defensiva: campos podem faltar)
 // =========================================================================
 const groupAndFilterMedicos = (medicos, searchText) => {
+  const busca = searchText.toLowerCase();
+
   const filteredMedicos = medicos.filter(
     (medico) =>
-      medico.nome.toLowerCase().includes(searchText.toLowerCase()) ||
-      medico.especialidade.toLowerCase().includes(searchText.toLowerCase()),
+      (medico.nome || "").toLowerCase().includes(busca) ||
+      (medico.especialidade || "").toLowerCase().includes(busca),
   );
 
   const grouped = filteredMedicos.reduce((acc, medico) => {
-    const firstLetter = medico.nome[0].toUpperCase();
+    const firstLetter = (medico.nome?.[0] || "#").toUpperCase();
     if (!acc[firstLetter]) {
       acc[firstLetter] = [];
     }
@@ -57,14 +56,12 @@ const groupAndFilterMedicos = (medicos, searchText) => {
     return acc;
   }, {});
 
-  const sections = Object.keys(grouped)
+  return Object.keys(grouped)
     .sort()
     .map((letter) => ({
       title: letter,
       data: grouped[letter],
     }));
-
-  return sections;
 };
 
 // =========================================================================
@@ -125,33 +122,29 @@ const MedicoCard = ({ medico, navigation, onExcluir }) => {
 // =========================================================================
 const Medico = ({ navigation }) => {
   const [medicos, setMedicos] = useState([]);
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
-  const { getItem } = useStorage(); // ✅ Aqui no topo!
 
   const buscarMedicos = async () => {
     setCarregando(true);
     setErro(null);
     try {
-      const token = await getItem('token'); // ✅ Agora funciona
-      const resposta = await fetch(`${BASE_URL}/medicos`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!resposta.ok) {
-        throw new Error(`Erro HTTP ${resposta.status}`);
-      }
-      const dados = await resposta.json();
+      const dados = await listarMedicos();
       setMedicos(dados);
     } catch (e) {
+      if (sessaoExpirou(e)) {
+        irParaLogin(navigation);
+        return;
+      }
       setErro(e.message);
     } finally {
       setCarregando(false);
     }
   };
 
-  // A lista se atualiza sozinha toda vez que a tela recebe o foco (volta do
-  // formulario de cadastro/edicao, por exemplo) - nao só na primeira montagem.
+  // A lista se atualiza toda vez que a tela recebe o foco (volta do
+  // formulario de cadastro/edicao, por exemplo), nao so na primeira montagem.
   useFocusEffect(
     useCallback(() => {
       buscarMedicos();
@@ -163,19 +156,13 @@ const Medico = ({ navigation }) => {
   // ---------------------------------------------------------------------
   const excluirMedico = async (medico) => {
     try {
-      const token = await AsyncStorage.getItem("token");
-
-      const resposta = await fetch(`${BASE_URL}/medicos/${medico.id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (!resposta.ok) {
-        throw new Error(`Erro HTTP ${resposta.status} ao excluir`);
-      }
+      await apiExcluirMedico(medico.id);
       await buscarMedicos();
     } catch (e) {
+      if (sessaoExpirou(e)) {
+        irParaLogin(navigation);
+        return;
+      }
       Alert.alert("Não foi possível excluir", e.message);
     }
   };
