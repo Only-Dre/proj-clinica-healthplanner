@@ -13,7 +13,7 @@ export const useStorage = () => {
       return await AsyncStorage.getItem(key);
     } catch (e) {
       console.log('Storage indisponível, usando memória');
-      return memoryStorage[key] || null;
+      return memoryStorage[key] ?? null;
     }
   };
 
@@ -30,5 +30,18 @@ export const useStorage = () => {
     }
   };
 
-  return { getItem, setItem };
+  const removeItem = async (key) => {
+    delete memoryStorage[key];
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
+      } else {
+        await AsyncStorage.removeItem(key);
+      }
+    } catch (e) {
+      console.log('Storage indisponível ao remover item');
+    }
+  };
+
+  return { getItem, setItem, removeItem };
 };

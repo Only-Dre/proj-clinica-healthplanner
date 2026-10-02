@@ -1,50 +1,25 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { View } from 'react-native';
 import MedicoForm from '../../components/MedicoForm';
-
-const BASE_URL = 'http://10.110.12.7:3001';
+import { irParaLogin, salvarMedico, sessaoExpirou } from '../../services/api';
 
 const CadastroEdicaoMedicoScreen = ({ route, navigation }) => {
   const { medico } = route.params || {};
 
+  // O erro é relançado para o MedicoForm exibir (mesmo padrão de antes).
+  // Timeout, token e 401 são tratados em services/api.js.
   const handleSave = async (novoDadosMedico) => {
-    const editando = !!medico;
-    const url = editando
-      ? `${BASE_URL}/medicos/${medico.id}`
-      : `${BASE_URL}/medicos`;
-
-    const token = await AsyncStorage.getItem('token');
-
-    // Cria timeout de 8s
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
     try {
-      const resposta = await fetch(url, {
-        method: editando ? 'PUT' : 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(novoDadosMedico),
-        signal: controller.signal,
-      });
+      // Com id => PUT (o servidor substitui o registro inteiro, então o
+      // formulário precisa enviar todos os campos). Sem id => POST.
+      const payload = medico
+        ? { ...novoDadosMedico, id: medico.id }
+        : novoDadosMedico;
 
-      clearTimeout(timeout);
-
-      if (!resposta.ok) {
-        throw new Error(`Erro HTTP ${resposta.status} ao salvar médico`);
-      }
-
-      return await resposta.json();
+      return await salvarMedico(payload);
     } catch (e) {
-      clearTimeout(timeout);
-      
-      // Trata timeout
-      if (e.name === 'AbortError') {
-        throw new Error('Tempo limite de 8s excedido. Tente novamente.');
+      if (sessaoExpirou(e)) {
+        irParaLogin(navigation);
       }
-      
       throw e;
     }
   };

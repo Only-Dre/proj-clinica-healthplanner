@@ -1,9 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import PacienteForm from '../../components/PacienteForm';
-
-const BASE_URL = 'http://10.110.12.7:3001';
+import { irParaLogin, salvarPaciente, sessaoExpirou } from '../../services/api';
 
 const CadastroEdicaoPacienteScreen = ({ route, navigation }) => {
   const { paciente } = route.params || {};
@@ -11,52 +9,37 @@ const CadastroEdicaoPacienteScreen = ({ route, navigation }) => {
 
   const handleSave = async (novoDadosPaciente) => {
     setSalvando(true);
-    
+
     try {
       const editando = !!paciente;
-      const url = editando
-        ? `${BASE_URL}/pacientes/${paciente.id}`
-        : `${BASE_URL}/pacientes`;
 
-      const token = await AsyncStorage.getItem('token');
+      // Com id => PUT (o servidor substitui o registro inteiro, então o
+      // formulário precisa enviar todos os campos). Sem id => POST.
+      const payload = editando
+        ? { ...novoDadosPaciente, id: paciente.id }
+        : novoDadosPaciente;
 
-      // Cria timeout de 8s
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      // Timeout (8s) e limpeza dele ficam em services/api.js
+      const dados = await salvarPaciente(payload);
 
-      const resposta = await fetch(url, {
-        method: editando ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(novoDadosPaciente),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
-
-      if (!resposta.ok) {
-        throw new Error(`Erro HTTP ${resposta.status} ao salvar paciente`);
-      }
-
-      const dados = await resposta.json();
-
-      // Alert de sucesso
       Alert.alert(
         'Sucesso!',
-        editando ? 'Paciente atualizado com sucesso' : 'Paciente cadastrado com sucesso',
+        editando
+          ? 'Paciente atualizado com sucesso'
+          : 'Paciente cadastrado com sucesso',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
 
       return dados;
     } catch (e) {
-      // Trata timeout
-      if (e.name === 'AbortError') {
-        Alert.alert('Erro', 'Tempo limite de 8s excedido. Tente novamente.');
-      } else {
-        Alert.alert('Erro', e.message || 'Erro desconhecido ao salvar');
+      if (sessaoExpirou(e)) {
+        irParaLogin(navigation);
+        throw e;
       }
+      // Mantido: a tela mostra o alerta de erro e relança.
+      // Se o PacienteForm também mostrar alerta, remova UM dos dois
+      // (me envie o PacienteForm que eu confirmo qual).
+      Alert.alert('Erro', e.message || 'Erro desconhecido ao salvar');
       throw e;
     } finally {
       setSalvando(false);
