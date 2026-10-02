@@ -1,10 +1,8 @@
-import React from 'react';
-import MedicoForm from '../../components/MedicoForm';
-import { View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View } from 'react-native';
+import MedicoForm from '../../components/MedicoForm';
 
-const BASE_URL = 'http://10.110.12.82:3001';
+const BASE_URL = 'http://10.110.12.7:3001';
 
 const CadastroEdicaoMedicoScreen = ({ route, navigation }) => {
   const { medico } = route.params || {};

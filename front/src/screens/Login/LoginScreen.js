@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  Button,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  Button,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useStorage } from '../../hooks/useStorage';
 
-const BASE_URL = 'http://10.110.12.82:3001';
+const BASE_URL = 'http://10.110.12.7:3001';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('recepcao@clinica.com');

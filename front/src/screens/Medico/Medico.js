@@ -3,24 +3,24 @@
 // Aula 3 - Passo 2 (leitura) e Passo 5 (exclusao): a tela deixou de receber
 // "medicos" por prop e passou a buscar sozinha em GET /medicos. O botao
 // "Desativar Perfil" virou "Excluir" de verdade, com confirmacao e DELETE.
-import React, { useState, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  SectionList,
-  TouchableOpacity,
-  Platform,
-  LayoutAnimation,
-  UIManager,
-  Button,
-  Image,
   ActivityIndicator,
   Alert,
+  Button,
+  Image,
+  LayoutAnimation,
+  Platform,
+  SectionList,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  UIManager,
+  View,
 } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useStorage } from '../../hooks/useStorage';
 
 const IconeLupa = require("../../../assets/lupa.png");
@@ -30,7 +30,7 @@ const { getItem } = useStorage();
 // Em emulador/navegador na propria maquina, 'localhost' funciona. Em
 // dispositivo fisico (Expo Go), troque pelo IP da maquina rodando o
 // json-server, na mesma rede Wi-Fi (ex.: 'http://192.168.15.80:3000').
-const BASE_URL = "http://10.110.12.82:3001";
+const BASE_URL = "http://10.110.12.7:3001";
 
 if (Platform.OS === "android") {
   if (UIManager.setLayoutAnimationEnabledExperimental) {

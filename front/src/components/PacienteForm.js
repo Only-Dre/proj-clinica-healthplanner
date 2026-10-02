@@ -19,6 +19,22 @@ const initialPacienteState = {
   email: '',
 };
 
+const ValidatedInput = ({ label, name, formData, errors, handleChange, ...props }) => (
+  <View style={formStyles.inputGroup}>
+    <Text style={formStyles.label}>{label}</Text>
+    <TextInput
+      style={[formStyles.input, errors[name] && formStyles.inputError]}
+      value={formData[name]}
+      onChangeText={(text) => handleChange(name, text)}
+      placeholderTextColor="#aaa"
+      autoCorrect={false}
+      autoCapitalize="none"
+      {...props}
+    />
+    {errors[name] && <Text style={formStyles.errorText}>{errors[name]}</Text>}
+  </View>
+);
+
 const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
   // Inicializa uma vez apenas
   const [formData, setFormData] = useState(() => paciente ? { ...paciente } : initialPacienteState);
@@ -72,22 +88,6 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
     }
   }, [formData, validate, onSave]);
 
-  const ValidatedInput = useCallback(({ label, name, ...props }) => (
-    <View style={formStyles.inputGroup}>
-      <Text style={formStyles.label}>{label}</Text>
-      <TextInput
-        style={[formStyles.input, errors[name] && formStyles.inputError]}
-        value={formData[name]}
-        onChangeText={(text) => handleChange(name, text)}
-        placeholderTextColor="#aaa"
-        autoCorrect={false}
-        autoCapitalize="none"
-        {...props}
-      />
-      {errors[name] && <Text style={formStyles.errorText}>{errors[name]}</Text>}
-    </View>
-  ), [formData, errors, handleChange]);
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
@@ -103,12 +103,18 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="Nome Completo" 
           name="nome" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="Lucas Pereira Silva"
         />
 
         <ValidatedInput 
           label="CPF" 
           name="cpf" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="000.000.000-00" 
           keyboardType="numeric"
         />
@@ -116,6 +122,9 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
         <ValidatedInput
           label="Data de Nascimento"
           name="dataNascimento"
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="AAAA-MM-DD"
           keyboardType="numeric"
         />
@@ -125,6 +134,9 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
         <ValidatedInput
           label="Telefone Celular"
           name="telefone"
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="(31) 99999-9999"
           keyboardType="phone-pad"
         />
@@ -132,6 +144,9 @@ const PacienteForm = ({ paciente, onSave, onCancel, navigation }) => {
         <ValidatedInput
           label="Email"
           name="email"
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="email@exemplo.com"
           keyboardType="email-address"
         />
