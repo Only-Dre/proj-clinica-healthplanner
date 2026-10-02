@@ -1,16 +1,16 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
+import { Picker } from '@react-native-picker/picker';
+import { useCallback, useMemo, useState } from 'react';
+import {
   Alert,
   Platform,
-  SafeAreaView
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 
 const especialidades = ['Cardiologia', 'Pediatria', 'Dermatologia', 'Ginecologia', 'Neurologia', 'Oftalmologia', 'Clínica Geral'];
 
@@ -27,6 +27,22 @@ const initialMedicoState = {
   uf: '',
   cep: '',
 };
+
+const ValidatedInput = ({ label, name, formData, errors, handleChange, ...props }) => (
+  <View style={formStyles.inputGroup}>
+    <Text style={formStyles.label}>{label}</Text>
+    <TextInput
+      style={[formStyles.input, errors?.[name] && formStyles.inputError]}
+      value={formData?.[name] || ''}
+      onChangeText={(text) => handleChange(name, text)}
+      placeholderTextColor="#aaa"
+      autoCorrect={false}
+      autoCapitalize="none"
+      {...props}
+    />
+    {errors?.[name] && <Text style={formStyles.errorText}>{errors[name]}</Text>}
+  </View>
+);
 
 const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
   // Inicializa uma vez apenas
@@ -86,22 +102,6 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
     }
   }, [formData, validate, onSave]);
   
-  const ValidatedInput = useCallback(({ label, name, ...props }) => (
-    <View style={formStyles.inputGroup}>
-      <Text style={formStyles.label}>{label}</Text>
-      <TextInput
-        style={[formStyles.input, errors[name] && formStyles.inputError]}
-        value={formData[name]}
-        onChangeText={(text) => handleChange(name, text)}
-        placeholderTextColor="#aaa"
-        autoCorrect={false}
-        autoCapitalize="none"
-        {...props}
-      />
-      {errors[name] && <Text style={formStyles.errorText}>{errors[name]}</Text>}
-    </View>
-  ), [formData, errors, handleChange]);
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView 
@@ -114,6 +114,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="Nome Completo" 
           name="nome" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="Ana Maria da Silva" 
         />
         
@@ -136,6 +139,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="CRM" 
           name="crm" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="12345/MG" 
         />
 
@@ -143,12 +149,18 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="Email" 
           name="email" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="email@exemplo.com" 
           keyboardType="email-address"
         />
         <ValidatedInput 
           label="Telefone Celular" 
           name="telefone" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="(31) 99999-9999" 
           keyboardType="phone-pad"
         />
@@ -157,6 +169,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="Logradouro" 
           name="logradouro" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="Rua das Flores" 
         />
         
@@ -165,6 +180,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
             <ValidatedInput 
               label="Número" 
               name="numero" 
+              formData={formData}
+              errors={errors}
+              handleChange={handleChange}
               placeholder="Nº" 
               keyboardType="numeric"
             />
@@ -173,6 +191,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
             <ValidatedInput 
               label="Complemento" 
               name="complemento" 
+              formData={formData}
+              errors={errors}
+              handleChange={handleChange}
               placeholder="Apto/Sala"
             />
           </View>

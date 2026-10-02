@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import PacienteForm from '../../components/PacienteForm';
-import { View, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
+import { Alert, View } from 'react-native';
+import PacienteForm from '../../components/PacienteForm';
 
-const BASE_URL = 'http://10.110.12.82:3001';
+const BASE_URL = 'http://10.110.12.7:3001';
 
 const CadastroEdicaoPacienteScreen = ({ route, navigation }) => {
   const { paciente } = route.params || {};

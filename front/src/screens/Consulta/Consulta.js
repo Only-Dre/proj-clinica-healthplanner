@@ -1,6 +1,5 @@
 // src/screens/Op3Screen.js
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 const Op3Screen = () => {
   return (

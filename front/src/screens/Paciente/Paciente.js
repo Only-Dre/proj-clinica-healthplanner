@@ -4,23 +4,23 @@
 // agrupamento por letra) + Passo 7 - extensao (escrita: POST/PUT/DELETE
 // seguindo o mesmo padrao aplicado em Medico.js).
 
-import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  FlatList,
-  Button,
   ActivityIndicator,
   Alert,
+  Button,
+  FlatList,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
 import { useStorage } from '../../hooks/useStorage';
 
 // Em dispositivo físico (Expo Go), troque pelo IP da máquina rodando o
 // json-server, na mesma rede Wi-Fi.
-const BASE_URL = 'http://10.110.12.82:3001';
+const BASE_URL = 'http://10.110.12.7:3001';
 
 const PacienteCard = ({ paciente, navigation, onExcluir }) => (
   <View style={cardStyles.card}>
