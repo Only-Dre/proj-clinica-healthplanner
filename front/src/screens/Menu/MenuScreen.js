@@ -1,6 +1,6 @@
 // src/screens/MenuScreen.js
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, Button } from 'react-native';
 // Componente importado (BotaoMenu, de acordo com o princípio de componentes)
 import BotaoMenu from '../../components/BotaoMenu'; 
 
@@ -35,6 +35,10 @@ const MenuScreen = ({ navigation }) => {
           icone={IconeConsulta}
           titulo="Consultas" 
           onPress={() => navigation.navigate('Consultas')}
+        />
+        <Button
+          title="Localização da clínica"
+          onPress={() => navigation.navigate('Localizacao')}
         />
       </View>
       {/* A criação de interfaces gráficas da aplicação mobile baseadas em UX é uma capacidade técnica abordada [1] */}

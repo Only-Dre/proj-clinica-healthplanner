@@ -20,13 +20,45 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.onlydre.app_clinica"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O HealthPlanner precisa da câmera para adicionar a foto do médico.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use o Face ID para desbloquear a sessão salva do HealthPlanner."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "O HealthPlanner usa sua localização enquanto o app está aberto para estimar a distância até a clínica."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#007AFF"
+        }
+      ]
     ]
   }
 }
