@@ -13,6 +13,8 @@ import Paciente from './src/screens/Paciente/Paciente';
 import Op3Screen from './src/screens/Consulta/Consulta';
 import CadastroEdicaoMedicoScreen from './src/screens/Medico/CadastroEdicaoMedicoScreen';
 import CadastroEdicaoPacienteScreen from './src/screens/Paciente/CadastroEdicaoPacienteScreen';
+import CadastroEdicaoConsultaScreen from './src/screens/Consulta/CadastroEdicaoConsultaScreen';
+import LocalizacaoScreen from './src/screens/Localizacao/LocalizacaoScreen';
 
 const Stack = createStackNavigator();
 
@@ -36,6 +38,8 @@ function App() {
 
         {/* Consultas */}
         <Stack.Screen name="Consultas" component={Op3Screen} options={{ title: 'Consultas' }} />
+        <Stack.Screen name="ConsultaForm" component={CadastroEdicaoConsultaScreen} options={{ title: 'Agendar Consulta' }} />
+        <Stack.Screen name="Localizacao" component={LocalizacaoScreen} options={{ title: 'Localização' }} />
 
         {/* Tela de construção */}
         <Stack.Screen name="EmConstrucao" component={() => (

@@ -26,5 +26,6 @@
     { "id": 2, "medicoId": 1, "diaSemana": "Quarta-feira", "horaInicio": "14:00", "horaFim": "18:00" },
     { "id": 3, "medicoId": 2, "diaSemana": "Terça-feira", "horaInicio": "09:00", "horaFim": "13:00" },
     { "id": 4, "medicoId": 3, "diaSemana": "Quinta-feira", "horaInicio": "13:00", "horaFim": "17:00" }
-  ]
+  ],
+  "consultas": []
 }

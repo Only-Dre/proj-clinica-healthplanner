@@ -1,7 +1,10 @@
 import { Picker } from '@react-native-picker/picker';
 import { useCallback, useMemo, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import {
   Alert,
+  Image,
+  Linking,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -11,6 +14,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { buscarEnderecoPorCep } from '../services/cep';
 
 const especialidades = ['Cardiologia', 'Pediatria', 'Dermatologia', 'Ginecologia', 'Neurologia', 'Oftalmologia', 'Clínica Geral'];
 
@@ -46,9 +50,18 @@ const ValidatedInput = ({ label, name, formData, errors, handleChange, ...props 
 
 const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
   // Inicializa uma vez apenas
-  const [formData, setFormData] = useState(() => medico ? { ...medico } : initialMedicoState);
+  const [formData, setFormData] = useState(() => medico
+    ? {
+        ...initialMedicoState,
+        ...medico,
+        logradouro: medico.logradouro || medico.endereco || '',
+        fotoUri: medico.fotoUri || null,
+      }
+    : initialMedicoState);
   const [errors, setErrors] = useState({});
   const [salvando, setSalvando] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [mensagemCep, setMensagemCep] = useState('');
 
   const isEditing = useMemo(() => !!medico, [medico?.id]);
   const buttonTitle = isEditing ? 'Concluir Edição' : 'Concluir Cadastro';
@@ -86,6 +99,61 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
     return valid;
   }, [formData]);
 
+  const handleCapturePhoto = async () => {
+    try {
+      const permissao = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permissao.granted) {
+        Alert.alert(
+          'Permissão de câmera necessária',
+          permissao.canAskAgain
+            ? 'Permita o acesso à câmera para fotografar o perfil do médico. A foto é opcional.'
+            : 'O acesso à câmera está bloqueado. Você pode habilitá-lo nos ajustes do aparelho. A foto é opcional.',
+          permissao.canAskAgain
+            ? [{ text: 'OK' }]
+            : [
+                { text: 'Agora não', style: 'cancel' },
+                { text: 'Abrir ajustes', onPress: () => Linking.openSettings() },
+              ],
+        );
+        return;
+      }
+
+      const resultado = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (resultado.canceled) return;
+
+      const fotoUri = resultado.assets?.[0]?.uri;
+      if (fotoUri) {
+        setFormData((atual) => ({ ...atual, fotoUri }));
+      }
+    } catch {
+      Alert.alert('Erro ao abrir a câmera', 'Não foi possível capturar a foto. Você ainda pode concluir o cadastro sem ela.');
+    }
+  };
+
+  const handleBuscarCep = async () => {
+    setBuscandoCep(true);
+    setMensagemCep('');
+    try {
+      const endereco = await buscarEnderecoPorCep(formData.cep || '');
+      setFormData((atual) => ({
+        ...atual,
+        logradouro: endereco.logradouro || atual.logradouro,
+        cidade: endereco.localidade || atual.cidade,
+        uf: endereco.uf || atual.uf,
+      }));
+      setMensagemCep('Endereço preenchido pelo ViaCEP. Confira os dados.');
+    } catch (erro) {
+      setMensagemCep(erro.message);
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
+
   const handleSubmit = useCallback(async () => {
     if (!validate()) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos obrigatórios.');
@@ -94,7 +162,10 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
 
     setSalvando(true);
     try {
-      await onSave(formData);
+      await onSave({
+        ...formData,
+        endereco: [formData.logradouro, formData.numero].filter(Boolean).join(', '),
+      });
     } catch (e) {
       Alert.alert('Não foi possível salvar', e.message);
     } finally {
@@ -109,6 +180,22 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>{isEditing ? 'Editar Perfil' : 'Novo Cadastro'}</Text>
+
+        <TouchableOpacity
+          style={styles.photoPicker}
+          onPress={handleCapturePhoto}
+          disabled={salvando}
+          accessibilityRole="button"
+          accessibilityLabel="Adicionar ou alterar foto de perfil"
+        >
+          <Image
+            source={formData.fotoUri ? { uri: formData.fotoUri } : require('../../assets/usuario-md.png')}
+            style={styles.photo}
+          />
+          <Text style={styles.photoAction}>
+            {formData.fotoUri ? 'Alterar foto de perfil' : 'Adicionar foto de perfil (opcional)'}
+          </Text>
+        </TouchableOpacity>
 
         <Text style={styles.sectionHeader}>👨‍⚕️ Profissional</Text>
         <ValidatedInput 
@@ -202,6 +289,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
         <ValidatedInput 
           label="Cidade" 
           name="cidade" 
+          formData={formData}
+          errors={errors}
+          handleChange={handleChange}
           placeholder="Belo Horizonte" 
         />
 
@@ -210,6 +300,9 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
             <ValidatedInput 
               label="UF" 
               name="uf" 
+              formData={formData}
+              errors={errors}
+              handleChange={handleChange}
               placeholder="MG" 
               maxLength={2}
             />
@@ -218,12 +311,25 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
             <ValidatedInput 
               label="CEP" 
               name="cep" 
+              formData={formData}
+              errors={errors}
+              handleChange={handleChange}
               placeholder="30123-456" 
               keyboardType="numeric"
               maxLength={9}
             />
           </View>
         </View>
+        <TouchableOpacity
+          style={[formStyles.button, formStyles.cepButton, buscandoCep && formStyles.buttonDisabled]}
+          onPress={handleBuscarCep}
+          disabled={buscandoCep || salvando}
+        >
+          <Text style={formStyles.buttonText}>
+            {buscandoCep ? 'Buscando CEP...' : 'Buscar endereço pelo CEP'}
+          </Text>
+        </TouchableOpacity>
+        {!!mensagemCep && <Text style={formStyles.cepFeedback}>{mensagemCep}</Text>}
       </ScrollView>
 
       <View style={styles.buttonContainer}>
@@ -231,10 +337,10 @@ const MedicoForm = ({ medico, onSave, onCancel, navigation }) => {
           style={[
             formStyles.button, 
             formStyles.saveButton, 
-            salvando && formStyles.buttonDisabled
+            (salvando || buscandoCep) && formStyles.buttonDisabled
           ]}
           onPress={handleSubmit}
-          disabled={salvando}
+          disabled={salvando || buscandoCep}
           activeOpacity={0.8}
         >
           <Text style={formStyles.buttonText}>
@@ -280,6 +386,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: '#007AFF',
     paddingBottom: 8,
+  },
+  photoPicker: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  photo: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#e8eef2',
+  },
+  photoAction: {
+    color: '#007AFF',
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 10,
   },
   buttonContainer: {
     position: 'absolute',
@@ -373,6 +495,15 @@ const formStyles = StyleSheet.create({
   },
   cancelButton: {
     backgroundColor: '#95a5a6',
+  },
+  cepButton: {
+    backgroundColor: '#557b90',
+    marginBottom: 8,
+  },
+  cepFeedback: {
+    color: '#444',
+    fontSize: 13,
+    marginBottom: 8,
   },
   buttonDisabled: {
     opacity: 0.6,
