@@ -10,13 +10,11 @@ import {
   Button,
   Image,
   LayoutAnimation,
-  Platform,
   SectionList,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  UIManager,
   View,
 } from "react-native";
 import {
@@ -28,12 +26,6 @@ import {
 
 const IconeLupa = require("../../../assets/lupa.png");
 const IconeSeta = require("../../../assets/seta.png");
-
-if (Platform.OS === "android") {
-  if (UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
-}
 
 // =========================================================================
 // FUNCAO AUXILIAR PARA AGRUPAR E FILTRAR OS DADOS (defensiva: campos podem faltar)

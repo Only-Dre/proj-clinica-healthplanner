@@ -18,6 +18,12 @@ import LocalizacaoScreen from './src/screens/Localizacao/LocalizacaoScreen';
 
 const Stack = createStackNavigator();
 
+const EmConstrucaoScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <Text style={{ fontSize: 24 }}>Em Construção!</Text>
+  </View>
+);
+
 function App() {
   return (
     <NavigationContainer>
@@ -42,11 +48,7 @@ function App() {
         <Stack.Screen name="Localizacao" component={LocalizacaoScreen} options={{ title: 'Localização' }} />
 
         {/* Tela de construção */}
-        <Stack.Screen name="EmConstrucao" component={() => (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ fontSize: 24 }}>Em Construção!</Text>
-            </View>
-        )} options={{ title: 'Em Construção' }} />
+        <Stack.Screen name="EmConstrucao" component={EmConstrucaoScreen} options={{ title: 'Em Construção' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
